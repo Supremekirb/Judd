@@ -1,0 +1,13 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Bot token
+token.txt
+
+# Bot logging
+discord.log
+
+# game data
+*.json
