@@ -26,6 +26,7 @@ class TeamJoinView(discord.ui.View):
 @discord.app_commands.describe(
     user="User to get team of"
 )
+@discord.app_commands.guild_only()
 async def member_of(interaction: discord.Interaction, user: discord.User):
     """Get the team affiliation of a user"""
     try:
@@ -43,6 +44,7 @@ async def member_of(interaction: discord.Interaction, user: discord.User):
         
         
 @discord.app_commands.command(description="Choose a team and join the game!")
+@discord.app_commands.dm_only()
 async def signup(interaction: discord.Interaction):
     if len(game.gamedata.data["teams"]) == 0:
         await interaction.response.send_message("There are no teams to join! Add some with `/add_team`!")
@@ -61,6 +63,7 @@ async def signup(interaction: discord.Interaction):
 @discord.app_commands.describe(
     user="User to remove"
 )
+@discord.app_commands.guild_only()
 async def remove_player(interaction: discord.Interaction, user: discord.User):
     if str(user.id) in game.playerdata.data:
         del game.playerdata.data[str(user.id)]

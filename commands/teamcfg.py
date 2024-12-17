@@ -2,19 +2,21 @@ import discord
 
 import game.gamedata
 import game.playerdata
-    
+
 
 @discord.app_commands.command(description="Add a new team")
 @discord.app_commands.describe(
     name="Team display name (please capitalise!)",
     colour="Team colour (hex code)"
 )
+@discord.app_commands.guild_only()
 async def add_team(interaction: discord.Interaction, name: str, colour: int):
     id = game.gamedata.new_team(name, colour)
     await interaction.response.send_message(f"Created Team \"{name}\" (its ID is {id})!")
 
 
 @discord.app_commands.command(description="List all teams")
+@discord.app_commands.guild_only()
 async def list_teams(interaction: discord.Interaction):
     affiliations = game.playerdata.enumerate_affilations()
     content = ""
@@ -23,7 +25,7 @@ async def list_teams(interaction: discord.Interaction):
             memberCount = affiliations[id]
         except KeyError:
             memberCount = 0
-        content += f"{id}. Team {i["name"]} ({memberCount} members)\n"
+        content += f"`{id}` Team {i["name"]} ({memberCount} members)\n" # backslash bc lists auto-count from 1 (bad and stinky)
     
     if content == "":
         content = f"No teams configured for this game! Use `/add_team` to add some."
@@ -35,6 +37,7 @@ async def list_teams(interaction: discord.Interaction):
 @discord.app_commands.describe(
     name_or_id="Team ID (integer) or team name (string)"
 )
+@discord.app_commands.guild_only()
 async def team(interaction: discord.Interaction, name_or_id: str):   
     affiliations = game.playerdata.enumerate_affilations()
     embed = discord.Embed()

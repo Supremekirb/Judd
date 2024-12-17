@@ -1,6 +1,7 @@
+import copy
+import datetime
 import json
 import logging
-import copy
 
 import jsonschema
 
@@ -22,8 +23,9 @@ schema = {
         "voting_open": {"type": "boolean"},
         "offset": {"type": "integer"},
         "round_period": {"type": "integer"},
+        "managers": {"type": "array", "items": {"type": "integer"}}
     },
-    "required": ["teams", "voting_open", "offset", "round_period"]
+    "required": ["managers", "teams", "voting_open", "offset", "round_period"]
 }
 
 default = {"teams": [], "voting_open": False, "offset": 0, "round_period": 20}
@@ -32,7 +34,7 @@ default = {"teams": [], "voting_open": False, "offset": 0, "round_period": 20}
 def save():
     global data
     with open(DATA_FILE, "w") as file:
-        json.dump(data, file)
+        json.dump(data, file, indent=4)
         
 def load():
     global data
@@ -46,7 +48,7 @@ def load():
         save()
 
 load()
-        
+
 def new_team(name: str, colour: int) -> int:
     """Create a new team (returns team ID)"""
     global data
@@ -55,3 +57,58 @@ def new_team(name: str, colour: int) -> int:
         "colour": colour
     })
     return len(data["teams"])-1
+
+
+def start_datetime():
+    return (datetime.datetime.fromisoformat(data["start"]).replace(tzinfo=datetime.timezone.utc)
+    + datetime.timedelta(hours=data["offset"]))
+
+def end_datetime():
+    return start_datetime() + datetime.timedelta(hours=data["round_period"])
+
+def is_active():
+    # TODO test these
+    if not data["start"] or not data["end"]:
+        return False # game dates not configured
+    
+    utcnow = datetime.datetime.now(datetime.timezone.utc)
+    
+    return (start_datetime() <= utcnow < end_datetime())
+
+def is_before():
+    if not data["start"]:
+        return False
+    
+    utctoday = datetime.datetime.now(datetime.timezone.utc).date()
+    return start_datetime() < utctoday
+
+def is_after():
+    if not data["end"]:
+        return False
+    
+    utctoday = datetime.datetime.now(datetime.timezone.utc).date()
+    return utctoday <= end_datetime()
+
+def turns_open():
+    if not is_active():
+        return False
+    
+    utcnow = datetime.datetime.now(datetime.timezone.utc)
+    
+    # specific to today
+    start = (utcnow.replace(hour=0, minute=0, second=0, microsecond=0)
+             + datetime.timedelta(hours=data["offset"]))
+    end = start + datetime.timedelta(hours=data["round_period"])
+    
+    return start <= utcnow < end
+    
+    
+
+def game_title():
+    title = ""
+    if len(data["teams"]) > 0:          
+        for i in data["teams"]:
+            title += f"{i["name"]} vs "
+        return title[:-4] # slice trailing " vs "
+    else:
+        return "No teams set!"

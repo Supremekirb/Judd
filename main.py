@@ -1,14 +1,10 @@
-# This example requires the 'message_content' intent.
-
 import logging
 
 import discord
-import discord.ext.commands
 
 import commands
-import game.fielddata as fielddata
-import game.gamedata as gamedata
-import game.playerdata as playerdata
+import config
+import tasks
 
 
 class Client(discord.Client):
@@ -17,15 +13,19 @@ class Client(discord.Client):
         self.tree = discord.app_commands.CommandTree(self)
         
     async def setup_hook(self):
+        tasks.register_with_loop(self)
         commands.register_with_tree(self.tree)
-        self.tree.copy_global_to(guild=discord.Object(id=1235354470951686265))
-        await self.tree.sync(guild=discord.Object(id=1235354470951686265))
         
+        for i in config.debug_guild_sync_ids:
+            self.tree.clear_commands(guild=discord.Object(id=i))
+            await self.tree.sync(guild=discord.Object(id=i))
+        
+        await self.tree.sync()        
 
 
 if __name__ == "__main__":
     intents = discord.Intents.default()
-    intents.message_content = True
+    # intents.message_content = True
     intents.typing = False
     intents.presences = False
 

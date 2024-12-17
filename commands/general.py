@@ -8,6 +8,7 @@ import game.playerdata
 
 
 @discord.app_commands.command(description="Save all data files to disk (routinely occurs automatically)")
+@discord.app_commands.guild_only()
 async def save_all(interaction: discord.Interaction):
     try:
         # game.fielddata.save()
@@ -19,6 +20,7 @@ async def save_all(interaction: discord.Interaction):
         raise
     
 @discord.app_commands.command(description="Reload from data on disk")
+@discord.app_commands.guild_only()
 async def load_all(interaction: discord.Interaction):
     try:
         game.fielddata.load()
@@ -30,6 +32,7 @@ async def load_all(interaction: discord.Interaction):
         raise
     
 @discord.app_commands.command(description="Reset ALL data to defaults")
+@discord.app_commands.guild_only()
 async def reset_all(interaction: discord.Interaction):
     try:
         game.fielddata.data = copy.deepcopy(game.fielddata.default)
@@ -39,4 +42,3 @@ async def reset_all(interaction: discord.Interaction):
     except Exception as e:
         await interaction.response.send_message(f"Something went wrong when resetting! Error was {str(e)}!")
         raise
-        

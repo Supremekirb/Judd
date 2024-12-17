@@ -32,7 +32,7 @@ default = {}
 def save():
     global data
     with open(DATA_FILE, "w") as file:
-        json.dump(data, file)
+        json.dump(data, file, indent=4)
         
 def load():
     global data
