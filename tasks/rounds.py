@@ -40,6 +40,17 @@ async def on_round_start(client: discord.Client):
             if game.gamedata.is_active():
                 title = game.gamedata.game_title()
                 
+                if "announcement_channel" in game.gamedata.data:
+                    channel = client.get_channel(game.gamedata.data["announcement_channel"])
+                    embed = discord.Embed(
+                        colour=0x5CFF5C,
+                        title="Turns are open for today!",
+                        description=f"You can have your turn for the next {game.gamedata.data["round_period"]}h! Check your DMs!"
+                    )
+                    embed.set_author(name=title)
+                    
+                    await channel.send(embed=embed)
+                
                 for uid in game.playerdata.data:
                     player = game.playerdata.data[uid]
                     team = game.gamedata.data["teams"][player["team"]]
@@ -54,11 +65,11 @@ async def on_round_start(client: discord.Client):
                                             title = f"Turns are open!",
                                             description = f"Time for a turn! You can use `/move` (x{config.moves})  and `/throw` (x{config.throws}) today.")
 
-                    embed.set_author(title=title)
+                    embed.set_author(name=title)
                     
                     await user.send(embed=embed)
                 
-            await asyncio.sleep(120) # sleep for a minute plus another minute for safety (otherwise may spam)
+                await asyncio.sleep(120) # sleep for a minute plus another minute for safety (otherwise may spam)
 
 
 @scheduled()
@@ -77,6 +88,7 @@ async def on_round_end(client: discord.Client):
             target += datetime.timedelta(days=1)
         
         await wait_until(target)
+
         
         tries = 1
         while not client.is_ready():
@@ -89,4 +101,13 @@ async def on_round_end(client: discord.Client):
 
         else: # stuff that should occur
             if game.gamedata.is_active():
-                print("Round's over!")
+                if "announcement_channel" in game.gamedata.data:
+                    channel = client.get_channel(game.gamedata.data["announcement_channel"])
+                    embed = discord.Embed(
+                        colour=0xFF5C5C,
+                        title="Turns are closed for today!",
+                        description=f"See you tomorrow!"
+                    )
+                    embed.set_author(name=game.gamedata.game_title())
+                    
+                    await channel.send(embed=embed)

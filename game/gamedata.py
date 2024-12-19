@@ -23,7 +23,9 @@ schema = {
         "voting_open": {"type": "boolean"},
         "offset": {"type": "integer"},
         "round_period": {"type": "integer"},
-        "managers": {"type": "array", "items": {"type": "integer"}}
+        "managers": {"type": "array", "items": {"type": "integer"}},
+        "announcement_channel": {"type": "integer"},
+        "logs_channel": {"type": "integer"},
     },
     "required": ["managers", "teams", "voting_open", "offset", "round_period"]
 }
@@ -64,7 +66,8 @@ def start_datetime():
     + datetime.timedelta(hours=data["offset"]))
 
 def end_datetime():
-    return start_datetime() + datetime.timedelta(hours=data["round_period"])
+    return (datetime.datetime.fromisoformat(data["end"]).replace(tzinfo=datetime.timezone.utc)
+    + datetime.timedelta(hours=data["offset"])) + datetime.timedelta(hours=data["round_period"])
 
 def is_active():
     # TODO test these
@@ -79,15 +82,15 @@ def is_before():
     if not data["start"]:
         return False
     
-    utctoday = datetime.datetime.now(datetime.timezone.utc).date()
-    return start_datetime() < utctoday
+    utcnow = datetime.datetime.now(datetime.timezone.utc)
+    return start_datetime() < utcnow
 
 def is_after():
     if not data["end"]:
         return False
     
-    utctoday = datetime.datetime.now(datetime.timezone.utc).date()
-    return utctoday <= end_datetime()
+    utcnow = datetime.datetime.now(datetime.timezone.utc)
+    return end_datetime() <= utcnow
 
 def turns_open():
     if not is_active():

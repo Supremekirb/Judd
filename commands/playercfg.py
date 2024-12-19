@@ -1,5 +1,6 @@
 import discord
 
+import commands.checks
 import game.gamedata
 import game.playerdata
 
@@ -13,7 +14,7 @@ class BaseTeamSelect(discord.ui.Select):
         
 class TeamJoinSelect(BaseTeamSelect):
     async def callback(self, interaction: discord.Interaction):
-        game.playerdata.player_config(str(interaction.user.id), int(self.values[0]))
+        game.playerdata.new_player(str(interaction.user.id), int(self.values[0]))
         await interaction.response.edit_message(content=f"You have joined Team {game.gamedata.data["teams"][int(self.values[0])]["name"]}!", view=None)
         
 class TeamJoinView(discord.ui.View):
@@ -35,7 +36,7 @@ async def member_of(interaction: discord.Interaction, user: discord.User):
             colour = game.gamedata.data["teams"][data["team"]]["colour"],
             title = user.display_name,
             description = f"On Team {game.gamedata.data["teams"][data["team"]]["name"]}"
-        ).set_author(name=user.global_name, icon_url=user.display_avatar.url)
+        ).set_author(name=user.name, icon_url=user.display_avatar.url)
         
         await interaction.response.send_message(embed=embed)
         
@@ -47,7 +48,8 @@ async def member_of(interaction: discord.Interaction, user: discord.User):
 @discord.app_commands.dm_only()
 async def signup(interaction: discord.Interaction):
     if len(game.gamedata.data["teams"]) == 0:
-        await interaction.response.send_message("There are no teams to join! Add some with `/add_team`!")
+        await interaction.response.send_message("There are no teams to join! Tell the game managers to add some with `/add_team`!")
+
     else:
         if game.gamedata.data["voting_open"]:
             if str(interaction.user.id) in game.playerdata.data:
@@ -65,6 +67,8 @@ async def signup(interaction: discord.Interaction):
 )
 @discord.app_commands.guild_only()
 async def remove_player(interaction: discord.Interaction, user: discord.User):
+    if not await commands.checks.manager_handler(interaction): return
+    
     if str(user.id) in game.playerdata.data:
         del game.playerdata.data[str(user.id)]
         await interaction.response.send_message(f"{user.display_name} has been removed from the game.")

@@ -12,8 +12,11 @@ schema = {
         r"^[0-9]*$": {"type": "object",
                 "properties": {
                     "team": {"type": "integer"},
-                    # "position": {"type": "array", "items": "integer"},
-                    "frozen": {"type": "boolean"}},
+                    "position": {"type": "array", "items": {"type": "integer"}},
+                    "frozen": {"type": "boolean"},
+                    "moves": {"type": "integer"}, # moves USED, not remaining
+                    "throws": {"type": "integer"}, # same
+                    },
                 "required": ["team"]},
     },
     "additionalProperties": False
@@ -42,11 +45,15 @@ def load():
 load()
  
         
-def player_config(uid: str, team: int):
-    global data
+def new_player(uid: str, team: int):
+    global data 
     data[uid] = {
-        "team": team
+        "team": team,
+        "frozen": False,
+        "moves": 0,
+        "throws": 0,
     }
+    
 
 def enumerate_affilations() -> dict[int, int]:
     affiliations = {}

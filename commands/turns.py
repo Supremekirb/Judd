@@ -21,3 +21,15 @@ async def move(interaction: discord.Interaction):
         
     else:
         await interaction.response.send_message("You can do this!")
+        
+        if "logs_channel" in game.gamedata.data:
+            channel = interaction.client.get_channel(game.gamedata.data["logs_channel"])
+            team = game.gamedata.data["teams"][game.playerdata.data[str(interaction.user.id)]["team"]]
+            
+            embed = discord.Embed(
+                colour=team["colour"],
+                title=f"{interaction.user.mention} moved!",
+            )
+            embed.set_author(name=f"Team {team["name"]}")
+            
+            await channel.send(embed=embed)
