@@ -4,6 +4,8 @@ import game.fielddata
 import game.gamedata
 import game.playerdata
 
+import gamelog.send
+
 @discord.app_commands.command(description="Perform your move for the day!")
 @discord.app_commands.dm_only()
 async def move(interaction: discord.Interaction):
@@ -22,14 +24,12 @@ async def move(interaction: discord.Interaction):
     else:
         await interaction.response.send_message("You can do this!")
         
-        if "logs_channel" in game.gamedata.data:
-            channel = interaction.client.get_channel(game.gamedata.data["logs_channel"])
-            team = game.gamedata.data["teams"][game.playerdata.data[str(interaction.user.id)]["team"]]
+        team = game.gamedata.data["teams"][game.playerdata.data[str(interaction.user.id)]["team"]]
+        
+        embed = discord.Embed(
+            colour=team["colour"],
+            description=f"{interaction.user.mention} of Team {team["name"]} moved!",
+        )
+        embed.set_author(name=f"Player moved")
             
-            embed = discord.Embed(
-                colour=team["colour"],
-                title=f"{interaction.user.mention} moved!",
-            )
-            embed.set_author(name=f"Team {team["name"]}")
-            
-            await channel.send(embed=embed)
+        await gamelog.send.log(interaction.client, embed=embed)

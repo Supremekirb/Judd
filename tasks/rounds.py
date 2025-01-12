@@ -7,6 +7,7 @@ import discord
 import config
 import game.gamedata
 import game.playerdata
+import gamelog.send
 from tasks.asyncutil import scheduled, wait_until
 
 _retry_interval = 10*60 # 10 mins
@@ -20,6 +21,8 @@ async def on_round_start(client: discord.Client):
         
         offset = game.gamedata.data["offset"]
         target = utcmidnight + datetime.timedelta(hours=offset)
+        
+        isFirst = target == game.gamedata.start_datetime()
         
         # TODO this WORKS but it's not exactly pretty
         while target < utcnow:
@@ -40,16 +43,33 @@ async def on_round_start(client: discord.Client):
             if game.gamedata.is_active():
                 title = game.gamedata.game_title()
                 
-                if "announcement_channel" in game.gamedata.data:
-                    channel = client.get_channel(game.gamedata.data["announcement_channel"])
+                if isFirst:
+                    embed = discord.Embed(
+                    colour=0xFFFF5C,
+                    title="The game begins!",
+                    description=f"Check your DMs this time each day to have your turn! You can have today's turn for the next {game.gamedata.data["round_period"]}h!"
+                    )
+                
+                    await gamelog.send.log(client, embed=discord.Embed(
+                        colour=0xFFFF5C,
+                        title="Game begins"
+                    ))
+                
+                else:
                     embed = discord.Embed(
                         colour=0x5CFF5C,
                         title="Turns are open for today!",
                         description=f"You can have your turn for the next {game.gamedata.data["round_period"]}h! Check your DMs!"
                     )
-                    embed.set_author(name=title)
-                    
-                    await channel.send(embed=embed)
+                
+                embed.set_author(name=title)
+                
+                await gamelog.send.announce(client, embed=embed)
+                
+                await gamelog.send.log(client, embed=discord.Embed(
+                        colour=0x5CFF5C,
+                        title="Turns open"
+                    ))
                 
                 for uid in game.playerdata.data:
                     player = game.playerdata.data[uid]
@@ -84,6 +104,8 @@ async def on_round_end(client: discord.Client):
         period = game.gamedata.data["round_period"]
         target += datetime.timedelta(hours=period)
         
+        isLast = target == game.gamedata.end_datetime()
+        
         while target < utcnow:
             target += datetime.timedelta(days=1)
         
@@ -100,14 +122,32 @@ async def on_round_end(client: discord.Client):
                 break
 
         else: # stuff that should occur
-            if game.gamedata.is_active():
-                if "announcement_channel" in game.gamedata.data:
-                    channel = client.get_channel(game.gamedata.data["announcement_channel"])
+            if game.gamedata.is_active() or isLast:
+                await gamelog.send.log(client, embed=discord.Embed(
+                        colour=0xFF5C5C,
+                        title="Turns close"
+                    ))
+                
+                if isLast:
+                    embed = discord.Embed(
+                        colour=0xFFFF5C,
+                        title="End of game!",
+                        description="The final round has concluded! Thank you for playing."
+                    )
+                
+                else:
                     embed = discord.Embed(
                         colour=0xFF5C5C,
                         title="Turns are closed for today!",
                         description=f"See you tomorrow!"
                     )
-                    embed.set_author(name=game.gamedata.game_title())
                     
-                    await channel.send(embed=embed)
+                embed.set_author(name=game.gamedata.game_title())
+                
+                await gamelog.send.announce(client, embed=embed)
+                
+                if isLast:
+                    await gamelog.send.log(client, embed=discord.Embed(
+                            colour=0xFFFF5C,
+                            title="Game ends"
+                        ))

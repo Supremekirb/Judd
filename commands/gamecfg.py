@@ -6,6 +6,7 @@ import commands.checks
 import game.fielddata
 import game.gamedata
 import game.playerdata
+import tasks
 
 
 @discord.app_commands.command(description="View info about the game")
@@ -14,7 +15,7 @@ async def info(interaction: discord.Interaction):
     embed.set_author(name="Game info")
     embed.title = game.gamedata.game_title()
     
-    if "start" in game.gamedata.data and "end" in game.gamedata.data:
+    if game.gamedata.data["start"] and game.gamedata.data["end"]:
         embed.add_field(name="Start", value=game.gamedata.data["start"], inline=True)
         embed.add_field(name="End", value=game.gamedata.data["end"], inline=True)
         
@@ -66,39 +67,53 @@ async def schedule(interaction: discord.Interaction, start: str, end: str,
                    offset: discord.app_commands.Range[int, -12, 12], round_period: discord.app_commands.Range[int, 1, 23]):
     if not await commands.checks.manager_handler(interaction): return
     
+    if not game.fielddata.field_ready():
+        await interaction.response.send_message("The game map is not ready! Use `/setup_map` to prepare it first.")
+        return
+    
+    if game.gamedata.is_active() or game.gamedata.is_after():
+        await interaction.response.send_message("Cannot reschedule an active or completed game! If you need to reset the game, use `/reset_all`.")
+        return
+    
     if len(game.gamedata.data["teams"]) < 2:
         await interaction.response.send_message("Cannot schedule the game until there's two or more teams!")
         return
     
     try:
-        startdate = datetime.date.fromisoformat(start)
-        enddate = datetime.date.fromisoformat(end)
+        starttime = datetime.datetime.fromisoformat(start).replace(tzinfo=datetime.timezone.utc)
+        endtime = datetime.datetime.fromisoformat(end).replace(tzinfo=datetime.timezone.utc)
     except ValueError:
         await interaction.response.send_message("You probably used the wrong date format! It's YYYY-MM-DD.")
         raise 
-
-    if startdate >= enddate:
-        await interaction.response.send_message("The start cannot be the same or later than the end!")
-        raise ValueError("Start date greater than or equal to end date")
-
-    if startdate <= datetime.datetime.now(datetime.timezone.utc).date():
-        await interaction.response.send_message("The start date must be after today!")
-        raise ValueError("Start date less than or equal to current date")
     
     if offset < -12 or offset > 14:
         await interaction.response.send_message("The offset must be in range -12 to 14!")
         raise ValueError(f"Invalid game event offset {offset}")
-
+    
     if round_period < 1 or round_period > 23:
         await interaction.response.send_message("The round period must be in range 1 to 23!")
         raise ValueError(f"Invalid game round period {round_period}")
+    
+    starttime += datetime.timedelta(hours=offset)
+    endtime += datetime.timedelta(hours=offset+round_period)
+
+    if starttime >= endtime:
+        await interaction.response.send_message("The start cannot be the same or later than the end!")
+        raise ValueError("Start time greater than or equal to end time")
+
+    if starttime <= datetime.datetime.now(datetime.timezone.utc):
+        await interaction.response.send_message("The start time must be after now!")
+        raise ValueError("Start time less than or equal to current time")
     
     game.gamedata.data["start"] = start
     game.gamedata.data["end"] = end
     game.gamedata.data["offset"] = offset
     game.gamedata.data["round_period"] = round_period
     
-    await interaction.response.send_message("This game has been scheduled! It will proceed automatically at the start time + offset.\nTo cancel, use `/reset_all`.")
+    await interaction.response.send_message("This game has been scheduled! It will proceed automatically at the start time + offset.\nTo cancel, use `/reset_all`.\nTasks will now be restarted.")
+    for i in tasks.tasks:
+        i.cancel("restarting tasks due to rescheduling")
+    tasks.register_with_loop(interaction.client)
     
 
 @discord.app_commands.command(description="Add a manager of the game. They can execute protected commands.")

@@ -27,10 +27,10 @@ schema = {
         "announcement_channel": {"type": "integer"},
         "logs_channel": {"type": "integer"},
     },
-    "required": ["managers", "teams", "voting_open", "offset", "round_period"]
+    "required": ["managers", "teams", "voting_open", "offset", "round_period", "start", "end"]
 }
 
-default = {"teams": [], "voting_open": False, "offset": 0, "round_period": 20}
+default = {"teams": [], "voting_open": False, "offset": 0, "round_period": 20, "managers": [], "start": None, "end": None}
     
     
 def save():

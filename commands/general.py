@@ -1,4 +1,5 @@
 import copy
+import os
 
 import discord
 
@@ -45,6 +46,8 @@ async def reset_all(interaction: discord.Interaction):
         game.fielddata.data = copy.deepcopy(game.fielddata.default)
         game.gamedata.data = copy.deepcopy(game.gamedata.default)
         game.playerdata.data = copy.deepcopy(game.playerdata.default)
+        if os.path.exists("map.png"): os.remove("map.png")
+        
         await interaction.response.send_message("Reset successfully!")
     except Exception as e:
         await interaction.response.send_message(f"Something went wrong when resetting! Error was {str(e)}!")

@@ -3,6 +3,7 @@ import discord
 import commands.checks
 import game.gamedata
 import game.playerdata
+import gamelog.send
 
 
 class BaseTeamSelect(discord.ui.Select):
@@ -16,6 +17,13 @@ class TeamJoinSelect(BaseTeamSelect):
     async def callback(self, interaction: discord.Interaction):
         game.playerdata.new_player(str(interaction.user.id), int(self.values[0]))
         await interaction.response.edit_message(content=f"You have joined Team {game.gamedata.data["teams"][int(self.values[0])]["name"]}!", view=None)
+        embed = discord.Embed(
+            colour=game.gamedata.data["teams"][int(self.values[0])]["colour"],
+            description=f"{interaction.user.mention} joined Team {game.gamedata.data["teams"][int(self.values[0])]["name"]}!"
+        )
+        embed.set_author(name="Team joined")
+        
+        await gamelog.send.log(interaction.client, embed=embed)
         
 class TeamJoinView(discord.ui.View):
     def __init__(self, *, timeout = 180):
