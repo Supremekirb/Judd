@@ -11,3 +11,6 @@ discord.log
 
 # game data
 *.json
+
+# game map
+map.png
