@@ -1,11 +1,11 @@
 import io
 
 import discord
-import PIL
-import PIL.Image
+from PIL import Image
 
 import commands.checks
 import game.fielddata
+import game.fieldimage
 
 
 @discord.app_commands.command(description="Set up the map")
@@ -27,7 +27,7 @@ async def setup_map(interaction: discord.Interaction, map: discord.Attachment, c
     buffer = io.BytesIO()
     try:
         await map.save(buffer)
-        map_img = PIL.Image.open(buffer)
+        map_img = Image.open(buffer)
     except Exception:
         await interaction.response.send_message("Failed to get map image!")
         raise
@@ -35,7 +35,7 @@ async def setup_map(interaction: discord.Interaction, map: discord.Attachment, c
     buffer = io.BytesIO()
     try:
         await collision_mask.save(buffer)
-        mask_img = PIL.Image.open(buffer)
+        mask_img = Image.open(buffer)
     except Exception:
         await interaction.response.send_message("Failed to get collision mask image!")
         raise
@@ -75,6 +75,7 @@ async def setup_map(interaction: discord.Interaction, map: discord.Attachment, c
     
     try:
         game.fielddata.field_config("map.png", tile_size, mask_array)
+        game.fieldimage._im = Image.open("map.png")
         
     except Exception: # shouldn't ever trigger? but just in case I sup[pose]
         await interaction.response.send_message("Failed to apply new map config to game!")

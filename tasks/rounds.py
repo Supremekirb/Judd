@@ -76,6 +76,10 @@ async def on_round_start(client: discord.Client):
                     team = game.gamedata.data["teams"][player["team"]]
                     user = await client.fetch_user(uid)
                     
+                    # reset if the player has moved
+                    player["moves"] = 0
+                    player["throws"] = 0
+                    
                     if "frozen" in player and player["frozen"]: # god I LOVE python
                         embed = discord.Embed(color = 0x44EEEE,
                                           title = f"Team {team["name"]}",

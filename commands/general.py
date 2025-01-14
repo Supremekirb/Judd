@@ -15,7 +15,7 @@ async def save_all(interaction: discord.Interaction):
     if not await commands.checks.owner_handler(interaction): return
     
     try:
-        # game.fielddata.save()
+        game.fielddata.save()
         game.gamedata.save()
         game.playerdata.save()
         await interaction.response.send_message("Saved successfully!")

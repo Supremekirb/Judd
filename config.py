@@ -14,6 +14,8 @@ DEFAULT_CONFIG = {
     
     "moves": 1,
     "throws": 3,
+    
+    "move_distance_max": 6,
 }
 
 try:
@@ -32,3 +34,4 @@ frozen_name: str = _data["frozen_name"]
 frozen_name_verb: str = _data["frozen_name_verb"]
 moves: int = _data["moves"]
 throws: int = _data["throws"]
+move_distance_max: int = _data["move_distance_max"]

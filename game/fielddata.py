@@ -24,13 +24,6 @@ schema = {
       "width": {"type": "integer"}, # in tile sizes
       "height": {"type": "integer"}, # in tile sizes
       "image": {"type": "string"}, # path
-      "backup_base_field": { # 2D array, just the collision (in case all turns need to be reapplied in sequence)
-          "type": "array",
-          "items": {
-              "type": "array",
-              "items": {"type": ["integer", "null"]}
-            },
-        }, 
     },
 }
 
@@ -71,20 +64,43 @@ def field_config(imgPath: str, tile_size: int, mask: tuple[tuple[int|None]]):
     data["height"] = height
     data["tile_size"] = tile_size
     data["field"] = mask
-    data["backup_base_field"] = mask
 
 
 def field_ready():
-    if not all(x in data for x in ["tile_size", "image", "width", "height", "field", "backup_base_field"]):
+    # all keys in dict
+    if not all(key in data for key in ["tile_size", "image", "width", "height", "field"]):
         return False
+    # the image also has to exist
     elif not os.path.exists(data["image"]):
         return False
     else:
         return True
+    
+def move_points(position: tuple[int, int], spaces: int):
+    """Get a list of points which can be travelled to in `spaces` in a straight line.\nReturns left, right, up, down"""
+    x, y = position
+    
+    left = x
+    while left > 0 and x-left < spaces and data["field"][left-1][y] != -1:
+        left -= 1
+        
+    right = x
+    while right < data["width"]-1 and right-x < spaces and data["field"][right+1][y] != -1:
+        right += 1
+        
+    up = y
+    while up > 0 and y-up < spaces and data["field"][x][up-1] != -1:
+        up -= 1
+        
+    down = y
+    while down < data["height"]-1 and down-y < spaces and data["field"][x][down+1] != -1:
+        down += 1
+        
+    return (left, y), (right, y), (x, up), (x, down)
         
         
 CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-def toChess(x: int, y: int):
+def to_chess(x: int, y: int):
     letters = ""
     while x >= 0:
         letters = CHARS[x % len(CHARS)] + letters
