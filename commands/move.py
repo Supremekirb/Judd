@@ -38,9 +38,24 @@ class MoveDirectionButton(BaseDirectionButton):
         team = game.gamedata.data["teams"][player["team"]]
         chess = game.fielddata.to_chess(*self.target_pos)
         
+        image = game.fieldimage.player_moved_to(player["position"], self.target_pos, team["colour"])
+        with io.BytesIO() as image_binary:
+            image.save(image_binary, 'PNG')
+            image_binary.seek(0)
+            file = discord.File(fp=image_binary, filename='move.png')
+            
+        embed = discord.Embed(
+            colour=team["colour"],
+            title="Move",
+            description=f"You moved {self.move_name} to **{chess}**!"
+        )
+        embed.set_image(url="attachment://move.png")
+        embed.set_footer(text=f"This is move {player["moves"]} of {config.moves} you can do today.")
+        embed.set_author(name=game.gamedata.game_title())
+        
         player["position"] = self.target_pos
-        # TODO embed of place you ended up
-        await interaction.response.edit_message(content=f"You moved {self.move_name} to **{chess}**!", view=None, embed=None, attachments=[])
+        
+        await interaction.response.edit_message(view=None, embed=embed, attachments=[file])
         
         embed = discord.Embed(
             colour=team["colour"],
@@ -85,13 +100,13 @@ async def move(interaction: discord.Interaction):
         player = game.playerdata.data[str(interaction.user.id)]
         team = game.gamedata.data["teams"][player["team"]]
         spaces = random.randint(1, config.move_distance_max)
-        image = game.fieldimage.player_move_area(player["position"], spaces, team["colour"])
         
         player["moves"] += 1
         # a little elaboration.
         # we increment it now, else players could just use the command again for a reroll. blegh.
         
         # https://stackoverflow.com/a/63210850/15287613
+        image = game.fieldimage.player_move_area(player["position"], spaces, team["colour"])
         with io.BytesIO() as image_binary:
             image.save(image_binary, 'PNG')
             image_binary.seek(0)
@@ -104,6 +119,7 @@ async def move(interaction: discord.Interaction):
         )
         embed.set_image(url="attachment://move_preview.png")
         embed.set_footer(text=f"This is move {player["moves"]} of {config.moves} you can do today.\nIf you don't select within two minutes, you forfeit this move!")
+        embed.set_author(name=game.gamedata.game_title())
         
         await interaction.response.send_message(
             embed=embed, file=file, view=MoveSelectView(positions=game.fielddata.move_points(player["position"], spaces)))
