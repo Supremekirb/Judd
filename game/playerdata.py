@@ -13,9 +13,17 @@ schema = {
                 "properties": {
                     "team": {"type": "integer"},
                     "position": {"type": "array", "items": {"type": "integer"}},
-                    "frozen": {"type": "boolean"},
+                    "frozen": {"type": "integer"},
                     "moves": {"type": "integer"}, # moves USED, not remaining
                     "throws": {"type": "integer"}, # same
+                    "queued_actions": {"type": "array", # actions to apply at the end of the round. Note that movement is applied instantly - it does not affect the map
+                                       "items": {"type": "object",
+                                                 "properties": {
+                                                     "name": {"type": "string"},
+                                                     "target": {"type": "array", "items": {"type": "integer"}}}}},
+                    "total_hits": {"type": "integer"},
+                    "total_turfed": {"type": "integer"},
+                    "total_throws": {"type": "integer"},
                     },
                 "required": ["team"]},
     },
@@ -47,11 +55,15 @@ load()
         
 def new_player(uid: str, team: int):
     global data 
-    data[uid] = {
+    data[uid] = { # inits everything but position, since that is assigned at game start
         "team": team,
-        "frozen": False,
+        "frozen": 0,
         "moves": 0,
         "throws": 0,
+        "queued_actions": [],
+        "total_hits": 0,
+        "total_turfed": 0,
+        "total_throws": 0,
     }
     
 

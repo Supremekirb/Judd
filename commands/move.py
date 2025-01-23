@@ -75,7 +75,7 @@ class MoveSelectView(discord.ui.View):
         self.add_item(MoveDirectionButton('down', positions[3]))
 
 
-@discord.app_commands.command(description="Perform your move for the day!")
+@discord.app_commands.command(description="Roll dice and move!")
 @discord.app_commands.dm_only()
 async def move(interaction: discord.Interaction):
     if not isinstance(interaction.channel, discord.channel.DMChannel):
@@ -94,7 +94,7 @@ async def move(interaction: discord.Interaction):
         await interaction.response.send_message(f"You have already moved the maximum amount of times ({config.moves}) today!")
     
     elif game.playerdata.data[str(interaction.user.id)]["frozen"]:
-        await interaction.response.send_message(f"You were frozen and cannot move today!")
+        await interaction.response.send_message(f"You were {config.frozen_name} and cannot move today!")
         
     else:
         player = game.playerdata.data[str(interaction.user.id)]

@@ -100,6 +100,7 @@ def move_points(position: tuple[int, int], spaces: int):
         
         
 CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
 def to_chess(x: int, y: int):
     letters = ""
     while x >= 0:
@@ -108,3 +109,28 @@ def to_chess(x: int, y: int):
         x -= 1 
     
     return f"{letters}{y}"
+
+def from_chess(chess: str):
+    if not chess.isalnum():
+        raise ValueError(f"String {chess} is not alphanumeric!")
+    
+    if not chess[0].isalpha():
+        raise ValueError(f"String {chess} does not start with an alphabetic character!")
+    
+    alpha = ""
+    index = 0
+    while len(chess) > index and chess[index].isalpha():
+        alpha += chess[index]
+        index += 1
+
+    numeric = chess[index:]
+    if not numeric.isnumeric():
+        raise ValueError(f"String {chess} is not letters followed by numbers only!")
+    
+    x: int = 0
+    values = list(CHARS.index(char)+1 for char in alpha.upper())
+    values.reverse()
+    for index, val in enumerate(values):
+        x += 26**index * val
+
+    return (x, int(numeric))
