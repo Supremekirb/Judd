@@ -11,8 +11,8 @@ import game.playerdata
 import gamelog.send
 from tasks.asyncutil import scheduled, wait_until
 
-_retry_interval = 10*60 # 10 mins
-_max_tries = 12 # 2 hours
+_retry_interval = config.retry_interval*60
+_max_tries = config.max_retries
 
 @scheduled()
 async def on_round_start(client: discord.Client):

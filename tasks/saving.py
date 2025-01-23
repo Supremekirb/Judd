@@ -3,12 +3,13 @@ import logging
 
 import discord
 
+import config
 import game.fielddata
 import game.gamedata
 import game.playerdata
 from tasks.asyncutil import scheduled
 
-_interval = 30*60
+_interval = config.save_interval*60
 
 @scheduled()
 async def auto_save(client: discord.Client):

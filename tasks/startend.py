@@ -4,13 +4,14 @@ import logging
 
 import discord
 
+import config
 import game.gamedata
 import game.playerdata
 import gamelog.send
 from tasks.asyncutil import scheduled, wait_until
 
-_retry_interval = 10*60 # 10 mins
-_max_tries = 12 # 2 hours
+_retry_interval = config.retry_interval*60
+_max_tries = config.max_retries
 
 # these don't actually need a `while True:` as they will only occur once
 

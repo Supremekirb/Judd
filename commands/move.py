@@ -99,7 +99,7 @@ async def move(interaction: discord.Interaction):
     else:
         player = game.playerdata.data[str(interaction.user.id)]
         team = game.gamedata.data["teams"][player["team"]]
-        spaces = random.randint(1, config.move_distance_max)
+        spaces = random.randint(config.move_distance_min, config.move_distance_max)
         
         player["moves"] += 1
         # a little elaboration.
