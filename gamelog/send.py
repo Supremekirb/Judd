@@ -2,22 +2,22 @@ import discord
 import game.gamedata
 
 
-async def announce(client: discord.Client, content: str = None, embed: discord.Embed = None):
+async def announce(client: discord.Client, content: str = None, embed: discord.Embed = None, file: discord.File = None):
     if "announcement_channel" in game.gamedata.data:
         channel = client.get_channel(game.gamedata.data["announcement_channel"])
         
         if not content and not embed:
             raise ValueError("Must have something to send!")
         
-        await channel.send(content=content, embed=embed)
+        await channel.send(content=content, embed=embed, file=file)
 
 
-async def log(client: discord.Client, content: str = None, embed: discord.Embed = None):
+async def log(client: discord.Client, content: str = None, embed: discord.Embed = None, file: discord.File = None):
     if "logs_channel" in game.gamedata.data:
         channel = client.get_channel(game.gamedata.data["logs_channel"])
         
         if not content and not embed:
             raise ValueError("Must have something to send!")
         
-        await channel.send(content=content, embed=embed)
+        await channel.send(content=content, embed=embed, file=file)
 

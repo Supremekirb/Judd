@@ -1,14 +1,17 @@
 import asyncio
 import datetime
+import io
 import logging
 
 import discord
 
 import config
 import game.fielddata
+import game.fieldimage
 import game.gamedata
 import game.playerdata
 import gamelog.send
+from game import fieldimage
 from tasks.asyncutil import scheduled, wait_until
 
 _retry_interval = config.retry_interval*60
@@ -112,6 +115,13 @@ async def on_round_end(client: discord.Client):
         
         isLast = target == game.gamedata.end_datetime()
         
+        #### DEBUG ####
+        # target = utcnow + datetime.timedelta(seconds=15)
+        # isLast = True
+        # print(target)
+        # print(utcnow)
+        ###############
+        
         while target < utcnow:
             target += datetime.timedelta(days=1)
         
@@ -134,24 +144,27 @@ async def on_round_end(client: discord.Client):
             players_frozen_today: dict[str, bool] = {} # uid -> boolean if it was from a player 
             
             # apply queue
-            for player in game.playerdata.data.values():
+            for uid in game.playerdata.data:
+                player = game.playerdata.data[uid]
                 for action in player["queued_actions"]:
                     x, y = action["target"]
                     match action["name"]:
                         case "throw":
                             player["total_throws"] += 1
                             if game.fielddata.data["field"][x][y] != -1:
+                                if game.fielddata.data["field"][x][y] != player["team"]:
+                                    player["total_turfed"] += 1
                                 game.fielddata.data["field"][x][y] = player["team"]
-                                player["total_turfed"] += 1
                                 players_by_throw_target.setdefault((x, y), [])
-                                players_by_throw_target[(x, y)].append(player["id"])
+                                players_by_throw_target[(x, y)].append(str(uid))
                                         
                         case _:
                             logging.warning(f"Unknown action type: {action["name"]}")
                 player["queued_actions"] = []
                 
             # see who is frozen based on turf 
-            for player in game.playerdata.data.values():
+            for uid in game.playerdata.data:
+                player = game.playerdata.data[uid]
                 x, y = player["position"]
                 if game.fielddata.data["field"][x][y] not in (player["team"], None) and not player["frozen"]:
                     # set to 2. Next day it is subtracted (= 1), so turn is missed, then day after it is set to 0, so unfrozen.
@@ -164,6 +177,14 @@ async def on_round_end(client: discord.Client):
                         if attacker["team"] != player["team"]:
                             attacker["total_hits"] += 1
                             players_frozen_today[str(player["id"])] = True
+                            
+            # update the paint overlay
+            # VERY IMPORTANT
+            game.fieldimage.update_paint_overlay()
+            
+            # DEBUG #
+            # if True:
+            #########
             
             if game.gamedata.is_active() or isLast:
                 await gamelog.send.log(client, embed=discord.Embed(
@@ -174,23 +195,104 @@ async def on_round_end(client: discord.Client):
                 if isLast:
                     embed = discord.Embed(
                         colour=0xFFFF5C,
-                        title="End of game!",
+                        title="End of the game!",
                         description="The final round has concluded! Thank you for playing."
                     )
-                
+                    embed.set_author(name=game.gamedata.game_title())
+                    await gamelog.send.announce(client, embed=embed)
+                    
+                    
+                    embed = discord.Embed()
+                    embed.set_author(name="Final results")
+                    
+                    scores = game.fielddata.turf_scores()
+                    sorted_team_scores = []
+                    for t, score in scores.items():
+                        team = game.gamedata.data["teams"][t]                        
+                        sorted_team_scores.append({"team": team, "score": score})
+                    
+                    sorted_team_scores.sort(key=lambda x: x["score"]["points"], reverse=True)
+                            
+                    embed.title = f"**Team {sorted_team_scores[0]["team"]["name"]} wins!**"
+                    embed.description = f"{sorted_team_scores[0]["score"]["percentage"]}% of the map claimed!"
+                    embed.colour = sorted_team_scores[0]["team"]["colour"]
+                    
+                    scores_str = ""
+                    for place, team_score in enumerate(sorted_team_scores):
+                        scores_str += f"{place+1}. Team {team_score["team"]["name"]} - {team_score["score"]["points"]}p ({team_score["score"]["percentage"]}%)\n"
+                    
+                    embed.add_field(name="Scores", value=scores_str)
+                    
+                    image = fieldimage.overview(paint=True, grid=False, collision=False,
+                                              teams=list(range(len(game.gamedata.data["teams"]))))
+                    with io.BytesIO() as image_binary:
+                        image.save(image_binary, 'PNG')
+                        image_binary.seek(0)
+                        file = discord.File(fp=image_binary, filename='final.png')
+                    embed.set_image(url="attachment://final.png")
+                    
+                    await gamelog.send.announce(client, embed=embed, file=file)
+                    
+                    embed = discord.Embed()
+                    embed.set_author(name="Best players")
+                    
+                    mvps = game.playerdata.mvps()
+                    
+                    turf_str = ""
+                    hits_str = ""
+                    hit_ratio_str = ""
+                    for i in range(0, 3): # only the top three in each category
+                        try:
+                            turf = mvps["turf"][i]
+                            hits = mvps["hits"][i]
+                            hit_ratio = mvps["hit_ratio"][i]
+                            turf_str += f"{i+1}. {(await client.fetch_user(int(turf["player"]))).mention} - {turf["stats"]["total_turfed"]}p\n"
+                            hits_str += f"{i+1}. {(await client.fetch_user(int(hits["player"]))).mention} - {hits["stats"]["total_hits"]} hits\n"
+                            hit_ratio_str += f"{i+1}. {(await client.fetch_user(int(hit_ratio["player"]))).mention} - {round((hit_ratio["stats"]["total_throws"]/hit_ratio["stats"]["total_hits"])*100, 2)}%\n"
+                        except IndexError: # less than three players
+                            pass
+                    
+                    embed.add_field(name="Best turfers", value=turf_str, inline=True)
+                    embed.add_field(name="Best attackers", value=hits_str, inline=True)
+                    embed.add_field(name="Best hit accuracy", value=hit_ratio_str, inline=True)
+                    
+                    await gamelog.send.announce(client, embed=embed)
+                        
                 else:
                     embed = discord.Embed(
                         colour=0xFF5C5C,
-                        title="Turns are closed for today!",
-                        description=f"See you tomorrow!"
+                        title="This day's turns have ended!",
                     )
                     
-                embed.set_author(name=game.gamedata.game_title())
+                    frozen_msg = ""
+                    uids_frozen = players_frozen_today.keys()
+                    if uids_frozen:
+                        for frozen in uids_frozen:
+                            frozen_msg += f"{await client.fetch_user(int(frozen)).mention}\n"
+                    else:
+                        frozen_msg = "Nobody"
+                        
+                    
+                    embed.add_field(name="**Players frozen today**", value=frozen_msg)
+                    
+                    image = fieldimage.overview(paint=True, grid=False, collision=False,
+                                              teams=list(range(len(game.gamedata.data["teams"]))), only_frozen=True)
+    
+                    with io.BytesIO() as image_binary:
+                        image.save(image_binary, 'PNG')
+                        image_binary.seek(0)
+                        file = discord.File(fp=image_binary, filename='map.png')
+                    embed.set_image(url="attachment://map.png")
+                    
+                    
+                    embed.set_author(name=game.gamedata.game_title())
+                    await gamelog.send.announce(client, embed=embed, file=file)               
                 
-                await gamelog.send.announce(client, embed=embed)
                 
                 if isLast:
                     await gamelog.send.log(client, embed=discord.Embed(
                             colour=0xFFFF5C,
                             title="Game ends"
                         ))
+                    
+                await asyncio.sleep(120) # sleep for a minute plus another minute for safety (otherwise may spam)

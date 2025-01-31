@@ -1,6 +1,3 @@
-import io
-import typing
-
 import discord
 
 import config
@@ -30,9 +27,9 @@ class ThrowModal(discord.ui.Modal, title="Aim and throw!"):
             await interaction.response.send_message(f"{self.location.value} would be out of bounds!")
             return
         
-        # TODO raycast check
-        # TODO send image
+        # TODO send image?
         player["queued_actions"].append({"name": "throw", "target": target})
+        player["throws"] += 1
         
         embed = discord.Embed(
             colour=team["colour"],
@@ -53,19 +50,19 @@ class ThrowModal(discord.ui.Modal, title="Aim and throw!"):
         await gamelog.send.log(interaction.client, embed=embed)
 
 @discord.app_commands.command(description=f"Throw a {config.projectile_name} at any location!")
-# @discord.app_commands.dm_only()
+@discord.app_commands.dm_only()
 async def throw(interaction: discord.Interaction):
-    # if not isinstance(interaction.channel, discord.channel.DMChannel):
-    #     await interaction.response.send_message("You can only use this in a DM!")
+    if not isinstance(interaction.channel, discord.channel.DMChannel):
+        await interaction.response.send_message("You can only use this in a DM!")
     
-    # elif not str(interaction.user.id) in game.playerdata.data:
-    #     await interaction.response.send_message("You didn't sign up to this game, so you cannot play!")
+    elif not str(interaction.user.id) in game.playerdata.data:
+        await interaction.response.send_message("You didn't sign up to this game, so you cannot play!")
         
-    # elif not game.gamedata.is_active():
-    #     await interaction.response.send_message("The game is not active!")
+    elif not game.gamedata.is_active():
+        await interaction.response.send_message("The game is not active!")
         
-    # elif not game.gamedata.turns_open():
-    #     await interaction.response.send_message("Turns aren't open for today!")
+    elif not game.gamedata.turns_open():
+        await interaction.response.send_message("Turns aren't open for today!")
         
     if game.playerdata.data[str(interaction.user.id)]["throws"] >= config.throws:
         await interaction.response.send_message(f"You have already thrown {config.projectile_name_plural} the maximum amount of times ({config.throws}) today!")
@@ -73,8 +70,5 @@ async def throw(interaction: discord.Interaction):
     elif game.playerdata.data[str(interaction.user.id)]["frozen"]:
         await interaction.response.send_message(f"You were {config.frozen_name} and cannot throw today!")
 
-    else:
-        player = game.playerdata.data[str(interaction.user.id)]
-        team = game.gamedata.data["teams"][player["team"]]
-        
+    else:        
         await interaction.response.send_modal(ThrowModal())

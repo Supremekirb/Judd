@@ -78,3 +78,15 @@ def enumerate_affilations() -> dict[int, int]:
             affiliations[i["team"]] += 1
             
     return affiliations
+
+
+def mvps():
+    players_list = []
+    for player, stats in data.items():
+        players_list.append({"player": player, "stats": stats})
+    
+    turf_sorted = sorted(players_list, key=lambda x: x["stats"]["total_turfed"], reverse=True)
+    hits_sorted = sorted(players_list, key=lambda x: x["stats"]["total_hits"], reverse=True)
+    hit_ratio_sorted = sorted(players_list, key=lambda x: x["stats"]["total_hits"]/x["stats"]["total_throws"], reverse=True)
+    
+    return {"turf": turf_sorted, "hits": hits_sorted, "hit_ratio": hit_ratio_sorted}

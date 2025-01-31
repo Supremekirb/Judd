@@ -97,7 +97,28 @@ def move_points(position: tuple[int, int], spaces: int):
         down += 1
         
     return (left, y), (right, y), (x, up), (x, down)
-        
+
+
+def turf_scores():
+    scores = {}
+    total_size = data["width"] * data["height"]
+    
+    for row in data["field"]:
+        for tile in row:
+            if tile == None:
+                continue
+            if tile == -1:
+                total_size -= 1 # dont count uninkable area in the total percentage
+                continue
+            
+            scores.setdefault(tile, {})
+            scores[tile].setdefault("points", 0)
+            scores[tile]["points"] += 1
+            
+    for team in scores.values():
+        team["percentage"] = round((team["points"]/total_size)*100, 1)
+    
+    return scores
         
 CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
