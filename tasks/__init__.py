@@ -5,7 +5,7 @@ import asyncio
 
 import discord
 
-tasks: list[asyncio.Task] = []
+tasks: set[asyncio.Task] = set()
 
 def register_with_loop(client: discord.Client):
     for module in os.listdir(os.path.dirname(__file__)):
@@ -15,5 +15,6 @@ def register_with_loop(client: discord.Client):
         for _, member in inspect.getmembers(imported):
             if hasattr(member, "_judd_scheduled"): # kinda janky - see asyncutil.py for the meaning of this
                 # TODO better way to check if it's wrapped by a specific thing
-                # TODO things here suppress errors, for some reason??
-                tasks.append(client.loop.create_task(member(client)))
+                task = client.loop.create_task(member(client))
+                tasks.add(task)
+                task.add_done_callback(tasks.discard) # do not keep unnecessary references
