@@ -9,7 +9,7 @@ import game.playerdata
 @discord.app_commands.command(description="Add a new team")
 @discord.app_commands.describe(
     name="Team display name (please capitalise!)",
-    colour="Team colour (hex code)",
+    colour="Team colour (hex code, prefix with 0x eg. 0xFFFFFF)",
     x1="Left of this team's starting area box.",
     y1="Top of this team's starting area box.",
     x2="Right of this team's starting area box.",
@@ -22,19 +22,24 @@ async def add_team(interaction: discord.Interaction, name: str, colour: int, x1:
     
     if not game.fielddata.field_ready():
         return await interaction.response.send_message("Please configure the field first! Use `/setup_map`.")
-    try:
-        if (x1 > x2 or
-            y1 > y2 or
-            any(i < 0 for i in (x1, y1, x2, y2)) or
-            max(x1, x2) >= game.fielddata.data["width"] or
-            max(y1, y2) >= game.fielddata.data["height"] or
-            game.fielddata.all_solid(x1, y1, x2, y2)):
-                return await interaction.response.send_message("Invalid starting range config! The format is: X1, Y1, X2, Y2.")
-    except Exception as e:
-        pass
+    if (x1 > x2 or
+        y1 > y2 or
+        any(i < 0 for i in (x1, y1, x2, y2)) or
+        max(x1, x2) >= game.fielddata.data["width"] or
+        max(y1, y2) >= game.fielddata.data["height"] or
+        game.fielddata.all_solid(x1, y1, x2, y2)):
+            return await interaction.response.send_message("Invalid starting range config! It may be out of range? The format is: X1, Y1, X2, Y2.")
         
-    id = game.gamedata.new_team(name, colour, (x1, y1, x2, y2))
-    await interaction.response.send_message(f"Created Team \"{name}\" (its ID is {id})!")
+    role = await interaction.guild.create_role(
+        name=f"Team {name}",
+        colour=colour,
+        hoist=True,
+        mentionable=True,
+        reason="Created role for Turf War game"
+    )
+    
+    id = game.gamedata.new_team(name, colour, role.id, (x1, y1, x2, y2))
+    await interaction.response.send_message(f"Created Team \"{name}\" (its ID is {id} and role is {role.mention})!")
 
 
 @discord.app_commands.command(description="List all teams and member counts")

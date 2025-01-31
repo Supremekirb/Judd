@@ -15,11 +15,18 @@ class BaseTeamSelect(discord.ui.Select):
         
 class TeamJoinSelect(BaseTeamSelect):
     async def callback(self, interaction: discord.Interaction):
+        team = game.gamedata.data["teams"][int(self.values[0])]
+        
         game.playerdata.new_player(str(interaction.user.id), int(self.values[0]))
-        await interaction.response.edit_message(content=f"You have joined Team {game.gamedata.data["teams"][int(self.values[0])]["name"]}!", view=None)
+        
+        await interaction.response.edit_message(content=f"You have joined Team {team["name"]}!", view=None)
+        # because of the following, this can ONLY be used in a guild
+        role = interaction.guild.get_role(int(team["role"]))
+        await interaction.user.add_roles(role, reason="Joined team in Turf War game")
+        
         embed = discord.Embed(
-            colour=game.gamedata.data["teams"][int(self.values[0])]["colour"],
-            description=f"{interaction.user.mention} joined Team {game.gamedata.data["teams"][int(self.values[0])]["name"]}!"
+            colour=team["colour"],
+            description=f"{interaction.user.mention} joined Team {team["name"]}!"
         )
         embed.set_author(name="Team joined")
         
@@ -53,7 +60,7 @@ async def member_of(interaction: discord.Interaction, user: discord.User):
         
         
 @discord.app_commands.command(description="Choose a team and join the game!")
-@discord.app_commands.dm_only()
+@discord.app_commands.guild_only()
 async def signup(interaction: discord.Interaction):
     if len(game.gamedata.data["teams"]) == 0:
         await interaction.response.send_message("There are no teams to join! Tell the game managers to add some with `/add_team`!")

@@ -53,12 +53,13 @@ def load():
 
 load()
 
-def new_team(name: str, colour: int, start_range: tuple[int, int, int, int]) -> int:
+def new_team(name: str, colour: int, role_id: int, start_range: tuple[int, int, int, int]) -> int:
     """Create a new team (returns team ID)"""
     global data
     data["teams"].append({
         "name": name,
         "colour": colour,
+        "role": str(role_id),
         "start_range": start_range
     })
     return len(data["teams"])-1
