@@ -12,6 +12,7 @@ import game.gamedata
 import game.playerdata
 import gamelog.send
 from game import fieldimage
+from tasks import game_end, game_start
 from tasks.asyncutil import scheduled, wait_until
 
 _retry_interval = config.retry_interval*60
@@ -44,28 +45,9 @@ async def on_round_start(client: discord.Client):
                 break
 
         else: # stuff that should occur 
-            if game.gamedata.is_active():
-                title = game.gamedata.game_title()
-                
+            if game.gamedata.is_active():                
                 if isFirst:
-                    embed = discord.Embed(
-                    colour=0xFFFF5C,
-                    title="The game begins!",
-                    description=f"Check your DMs this time each day to have your turn! You can have today's turn for the next {game.gamedata.data["round_period"]}h!"
-                    )
-                    # this one is actually sent later
-                    
-                    
-                    # randomise player start positions
-                    for uid in game.playerdata.data:
-                        player = game.playerdata.data[uid]
-                        team = game.gamedata.data["teams"][player["team"]]                        
-                        player["position"] = game.fielddata.random_open_space(*team["start_range"])
-                
-                    await gamelog.send.log(client, embed=discord.Embed(
-                        colour=0xFFFF5C,
-                        title="Game begins"
-                    ))
+                    await game_start.on_game_start(client)
                 
                 else:
                     embed = discord.Embed(
@@ -73,10 +55,9 @@ async def on_round_start(client: discord.Client):
                         title="Turns are open for today!",
                         description=f"You can have your turn for the next {game.gamedata.data["round_period"]}h! Check your DMs!"
                     )
+                    embed.set_author(name=game.gamedata.game_title())
+                    await gamelog.send.announce(client, embed=embed)
                 
-                embed.set_author(name=title)
-                
-                await gamelog.send.announce(client, embed=embed)
                 
                 await gamelog.send.log(client, embed=discord.Embed(
                         colour=0x5CFF5C,
@@ -103,7 +84,7 @@ async def on_round_start(client: discord.Client):
                                             title = f"Turns are open!",
                                             description = f"Time for a turn! You're at {game.fielddata.to_chess(*player["position"])}. You can use `/move` (x{config.moves})  and `/throw` (x{config.throws}) today.")
 
-                    embed.set_author(name=title)
+                    embed.set_author(name=game.gamedata.game_title())
                     
                     await user.send(embed=embed)
                 
@@ -202,74 +183,7 @@ async def on_round_end(client: discord.Client):
                     ))
                 
                 if isLast:
-                    embed = discord.Embed(
-                        colour=0xFFFF5C,
-                        title="End of the game!",
-                        description="The final round has concluded! Thank you for playing."
-                    )
-                    embed.set_author(name=game.gamedata.game_title())
-                    await gamelog.send.announce(client, embed=embed)
-                    
-                    
-                    embed = discord.Embed()
-                    embed.set_author(name="Final results")
-                    
-                    scores = game.fielddata.turf_scores()
-                    sorted_team_scores = []
-                    for t, score in scores.items():
-                        team = game.gamedata.data["teams"][t]                        
-                        sorted_team_scores.append({"team": team, "score": score})
-                    
-                    sorted_team_scores.sort(key=lambda x: x["score"]["points"], reverse=True)
-                            
-                    embed.title = f"**Team {sorted_team_scores[0]["team"]["name"]} wins!**"
-                    embed.description = f"{sorted_team_scores[0]["score"]["percentage"]}% of the map claimed!"
-                    embed.colour = sorted_team_scores[0]["team"]["colour"]
-                    
-                    scores_str = ""
-                    for place, team_score in enumerate(sorted_team_scores):
-                        scores_str += f"{place+1}. Team {team_score["team"]["name"]} - {team_score["score"]["points"]}p ({team_score["score"]["percentage"]}%)\n"
-                    
-                    embed.add_field(name="Scores", value=scores_str)
-                    
-                    image = fieldimage.overview(paint=True, grid=False, collision=False,
-                                              teams=list(range(len(game.gamedata.data["teams"]))))
-                    with io.BytesIO() as image_binary:
-                        image.save(image_binary, 'PNG')
-                        image_binary.seek(0)
-                        file = discord.File(fp=image_binary, filename='final.png')
-                    embed.set_image(url="attachment://final.png")
-                    
-                    await gamelog.send.announce(client, embed=embed, file=file)
-                    
-                    embed = discord.Embed()
-                    embed.set_author(name="Best players")
-                    
-                    mvps = game.playerdata.mvps()
-                    
-                    turf_str = ""
-                    hits_str = ""
-                    hit_ratio_str = ""
-                    for i in range(0, 3): # only the top three in each category
-                        try:
-                            turf = mvps["turf"][i]
-                            hits = mvps["hits"][i]
-                            hit_ratio = mvps["hit_ratio"][i]
-                            turf_str += f"{i+1}. {(await client.fetch_user(int(turf["player"]))).mention} - {turf["stats"]["total_turfed"]}p\n"
-                            hits_str += f"{i+1}. {(await client.fetch_user(int(hits["player"]))).mention} - {hits["stats"]["total_hits"]} hits\n"
-                            try:
-                                hit_ratio_str += f"{i+1}. {(await client.fetch_user(int(hit_ratio["player"]))).mention} - {round((hit_ratio["stats"]["total_throws"]/hit_ratio["stats"]["total_hits"])*100, 2)}%\n"
-                            except ZeroDivisionError: # some of the top three had no hits
-                                # hit_ratio_str += f"{i+1}. {(await client.fetch_user(int(hit_ratio["player"]))).mention} - 0%\n"
-                                pass # after consideration, I think it's easier to just skip them, since the sorting doesn't imply any actual info here
-                        except IndexError: # less than three players
-                            pass
-                    
-                    embed.add_field(name="Best turfers", value=turf_str, inline=True)
-                    embed.add_field(name="Best attackers", value=hits_str, inline=True)
-                    embed.add_field(name="Best hit accuracy", value=hit_ratio_str, inline=True)
-                    
-                    await gamelog.send.announce(client, embed=embed)
+                    await game_end.on_game_end(client)
                         
                 else:
                     embed = discord.Embed(
@@ -297,15 +211,7 @@ async def on_round_end(client: discord.Client):
                         file = discord.File(fp=image_binary, filename='map.png')
                     embed.set_image(url="attachment://map.png")
                     
-                    
                     embed.set_author(name=game.gamedata.game_title())
                     await gamelog.send.announce(client, embed=embed, file=file)               
-                
-                
-                if isLast:
-                    await gamelog.send.log(client, embed=discord.Embed(
-                            colour=0xFFFF5C,
-                            title="Game ends"
-                        ))
                     
                 await asyncio.sleep(120) # sleep for a minute plus another minute for safety (otherwise may spam)
