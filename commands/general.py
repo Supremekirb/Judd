@@ -23,7 +23,7 @@ async def map(interaction: discord.Interaction, show_grid: bool=False, show_terr
         try:
             player = game.playerdata.data[str(interaction.user.id)]
             team = [player["team"]]
-        except IndexError:
+        except KeyError:
             return await interaction.response.send_message("You can only use `show_my_team` if you are participating!")
     
     image = game.fieldimage.overview(grid=show_grid, collision=show_terrain, teams=team)
@@ -42,6 +42,50 @@ async def map(interaction: discord.Interaction, show_grid: bool=False, show_terr
     
     await interaction.response.send_message(embed=embed, file=file, ephemeral=show_my_team)
 
+
+@discord.app_commands.command(description="Get a close-up of an area")
+@discord.app_commands.describe(
+    location = "Chess notation (eg. B6, H23, AB3)",
+    zoom_out = "How many tiles around here you want to see",
+    show_indicator = "Show a dot on this tile",
+    show_grid = "Show the grid on this image",
+    show_terrain = "Show solid tiles on this image",
+    show_my_team = "If you're participating, show the members of your team. The message will only show to you."
+)
+async def location(interaction: discord.Interaction, location: str, zoom_out: int=5, show_indicator: bool=True, show_grid: bool=True, show_terrain: bool=False, show_my_team: bool=False):
+    try:
+        target = game.fielddata.from_chess(location)
+    except ValueError:
+        await interaction.response.send_message("You must use alphanumeric coordinates (eg. B6, H23, AB3)!")
+        return
+    if target[0] >= game.fielddata.data["width"] or target[1] >= game.fielddata.data["height"]:
+        await interaction.response.send_message(f"{location} would be out of bounds!")
+        return
+    
+    team = []
+    if show_my_team:
+        try:
+            player = game.playerdata.data[str(interaction.user.id)]
+            team = [player["team"]]
+        except KeyError:
+            return await interaction.response.send_message("You can only use `show_my_team` if you are participating!")
+    
+    image = game.fieldimage.location(target, zoom_out, indicator=show_indicator, grid=show_grid, collision=show_terrain, teams=team)
+    
+    with io.BytesIO() as image_binary:
+        image.save(image_binary, 'PNG')
+        image_binary.seek(0)
+        file = discord.File(fp=image_binary, filename='location.png')
+    
+    embed = discord.Embed(
+        title="Location Map",
+        description=f"Use `/map` for a view of the whole game!"
+    )
+    embed.set_image(url="attachment://location.png")
+    embed.set_author(name=game.gamedata.game_title())
+    
+    await interaction.response.send_message(embed=embed, file=file, ephemeral=show_my_team)
+    
 
 @discord.app_commands.command(description="Save all data files to disk (routinely occurs automatically)")
 @discord.app_commands.guild_only()

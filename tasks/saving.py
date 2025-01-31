@@ -19,5 +19,5 @@ async def auto_save(client: discord.Client):
         game.fielddata.save()
         game.gamedata.save()
         game.playerdata.save()
-        logging.debug("Autosaved game data!")
+        logging.info("Autosaved game data!")
         

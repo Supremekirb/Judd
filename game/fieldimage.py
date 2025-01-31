@@ -165,3 +165,16 @@ def overview(paint: bool=True, grid: bool=True, collision: bool=True, teams: lis
                             draw.circle((centerX, centerY), radius=0.3*tile_size, fill=colour)
         
     return image
+
+
+def location(location_tile: tuple[int, int], padding: int=5, indicator: bool=True, paint: bool=True, grid: bool=True, collision: bool=True, teams: list[int]=[], only_frozen: bool=False):
+    image = overview(paint, grid, collision, teams, only_frozen)
+    tile_size: int = fielddata.data["tile_size"]
+    location = (location_tile[0]*tile_size + tile_size//2, location_tile[1]*tile_size + tile_size//2)
+    
+    if indicator:
+        draw = ImageDraw.Draw(image)
+        draw.circle(location, 0.4*tile_size, fill="white")
+        draw.circle(location, 0.3*tile_size, fill="black")
+    
+    return standard_size(area_image(image, location, tile_size*padding))
