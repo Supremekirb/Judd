@@ -81,6 +81,7 @@ def enumerate_affilations() -> dict[int, int]:
 
 
 def mvps():
+    # TODO why is the zero-division error not thrown here?
     players_list = []
     for player, stats in data.items():
         players_list.append({"player": player, "stats": stats})

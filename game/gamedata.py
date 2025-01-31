@@ -15,6 +15,8 @@ schema = {
                             "properties": {
                                 "name": {"type": "string"}, # display name
                                 "colour": {"type": "integer"}, # hex code (but in decimal)
+                                "start_range": {"type": "array",
+                                                "items": {"type": "integer"}}
                             },
                   },
         },
@@ -51,12 +53,13 @@ def load():
 
 load()
 
-def new_team(name: str, colour: int) -> int:
+def new_team(name: str, colour: int, start_range: tuple[int, int, int, int]) -> int:
     """Create a new team (returns team ID)"""
     global data
     data["teams"].append({
         "name": name,
-        "colour": colour
+        "colour": colour,
+        "start_range": start_range
     })
     return len(data["teams"])-1
 

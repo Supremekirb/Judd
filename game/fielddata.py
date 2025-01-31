@@ -2,6 +2,7 @@ import copy
 import json
 import logging
 import os
+import random
 
 import jsonschema
 import PIL
@@ -75,6 +76,30 @@ def field_ready():
         return False
     else:
         return True
+    
+def all_solid(x1, y1, x2, y2):
+    for i in range(x1, x2+1):
+        row = data["field"][i]
+        for j in range(y1, y2+2):
+            tile = row[j]
+            if tile != -1:
+                return False
+    else:
+        return True
+    
+def random_open_space(x1, y1, x2, y2):
+    if all_solid(x1, y1, x2, y2):
+        raise ValueError("All solid in this range")
+    
+    x = random.randint(x1, x2)
+    y = random.randint(y1, y2)
+    
+    while data["field"][x][y] == -1:
+        x = random.randint(x1, x2)
+        y = random.randint(y1, y2)
+        
+    return x, y
+    
     
 def move_points(position: tuple[int, int], spaces: int):
     """Get a list of points which can be travelled to in `spaces` in a straight line.\nReturns left, right, up, down"""

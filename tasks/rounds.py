@@ -27,7 +27,7 @@ async def on_round_start(client: discord.Client):
         target = utcmidnight + datetime.timedelta(hours=offset)
         
         isFirst = target == game.gamedata.start_datetime()
-        
+         
         # TODO this WORKS but it's not exactly pretty
         while target < utcnow:
             target += datetime.timedelta(days=1)
@@ -53,6 +53,14 @@ async def on_round_start(client: discord.Client):
                     title="The game begins!",
                     description=f"Check your DMs this time each day to have your turn! You can have today's turn for the next {game.gamedata.data["round_period"]}h!"
                     )
+                    # this one is actually sent later
+                    
+                    
+                    # randomise player start positions
+                    for uid in game.playerdata.data:
+                        player = game.playerdata.data[uid]
+                        team = game.gamedata.data["teams"][player["team"]]                        
+                        player["position"] = game.fielddata.random_open_space(*team["start_range"])
                 
                     await gamelog.send.log(client, embed=discord.Embed(
                         colour=0xFFFF5C,
@@ -84,6 +92,7 @@ async def on_round_start(client: discord.Client):
                     player["throws"] = 0
                     
                     player["frozen"] -= 1
+                    if player["frozen"] < 0: player["frozen"] = 0
                     
                     if "frozen" in player and player["frozen"]: # god I LOVE python
                         embed = discord.Embed(color = 0x44EEEE,
@@ -92,7 +101,7 @@ async def on_round_start(client: discord.Client):
                     else:
                         embed = discord.Embed(color = team["colour"],
                                             title = f"Turns are open!",
-                                            description = f"Time for a turn! You can use `/move` (x{config.moves})  and `/throw` (x{config.throws}) today.")
+                                            description = f"Time for a turn! You're at {game.fielddata.to_chess(*player["position"])}. You can use `/move` (x{config.moves})  and `/throw` (x{config.throws}) today.")
 
                     embed.set_author(name=title)
                     
@@ -248,7 +257,11 @@ async def on_round_end(client: discord.Client):
                             hit_ratio = mvps["hit_ratio"][i]
                             turf_str += f"{i+1}. {(await client.fetch_user(int(turf["player"]))).mention} - {turf["stats"]["total_turfed"]}p\n"
                             hits_str += f"{i+1}. {(await client.fetch_user(int(hits["player"]))).mention} - {hits["stats"]["total_hits"]} hits\n"
-                            hit_ratio_str += f"{i+1}. {(await client.fetch_user(int(hit_ratio["player"]))).mention} - {round((hit_ratio["stats"]["total_throws"]/hit_ratio["stats"]["total_hits"])*100, 2)}%\n"
+                            try:
+                                hit_ratio_str += f"{i+1}. {(await client.fetch_user(int(hit_ratio["player"]))).mention} - {round((hit_ratio["stats"]["total_throws"]/hit_ratio["stats"]["total_hits"])*100, 2)}%\n"
+                            except ZeroDivisionError: # some of the top three had no hits
+                                # hit_ratio_str += f"{i+1}. {(await client.fetch_user(int(hit_ratio["player"]))).mention} - 0%\n"
+                                pass # after consideration, I think it's easier to just skip them, since the sorting doesn't imply any actual info here
                         except IndexError: # less than three players
                             pass
                     

@@ -1,6 +1,7 @@
 import discord
 
 import commands.checks
+import game.fielddata
 import game.gamedata
 import game.playerdata
 
@@ -8,13 +9,31 @@ import game.playerdata
 @discord.app_commands.command(description="Add a new team")
 @discord.app_commands.describe(
     name="Team display name (please capitalise!)",
-    colour="Team colour (hex code)"
+    colour="Team colour (hex code)",
+    x1="Left of this team's starting area box.",
+    y1="Top of this team's starting area box.",
+    x2="Right of this team's starting area box.",
+    y2="Bottom of this team's starting area box."
 )
+    
 @discord.app_commands.guild_only()
-async def add_team(interaction: discord.Interaction, name: str, colour: int):
+async def add_team(interaction: discord.Interaction, name: str, colour: int, x1: int, y1: int, x2: int, y2: int):
     if not await commands.checks.manager_handler(interaction): return
     
-    id = game.gamedata.new_team(name, colour)
+    if not game.fielddata.field_ready():
+        return await interaction.response.send_message("Please configure the field first! Use `/setup_map`.")
+    try:
+        if (x1 > x2 or
+            y1 > y2 or
+            any(i < 0 for i in (x1, y1, x2, y2)) or
+            max(x1, x2) >= game.fielddata.data["width"] or
+            max(y1, y2) >= game.fielddata.data["height"] or
+            game.fielddata.all_solid(x1, y1, x2, y2)):
+                return await interaction.response.send_message("Invalid starting range config! The format is: X1, Y1, X2, Y2.")
+    except Exception as e:
+        pass
+        
+    id = game.gamedata.new_team(name, colour, (x1, y1, x2, y2))
     await interaction.response.send_message(f"Created Team \"{name}\" (its ID is {id})!")
 
 
