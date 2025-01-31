@@ -75,5 +75,5 @@ You'll need to host Judd yourself, as it only supports one game at a time. Gener
 
 * Create in-app events
 * Create channels for each team
-  * It *does* create roles for each time and assign them automatically
+  * It *does* create roles for each team and assign them automatically
   * Therefore, you can configure team channels based on these roles
