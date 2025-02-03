@@ -18,6 +18,9 @@ import game.playerdata
     show_my_team = "If you're participating, show the members of your team. The message will only show to you."
 )
 async def map(interaction: discord.Interaction, show_grid: bool=False, show_terrain: bool=False, show_my_team: bool=False):
+    if not game.fielddata.field_ready():
+        return await interaction.response.send_message("There is no map to display! Set one up with /setup_map!")
+    
     team = []
     if show_my_team:
         try:
@@ -53,6 +56,9 @@ async def map(interaction: discord.Interaction, show_grid: bool=False, show_terr
     show_my_team = "If you're participating, show the members of your team. The message will only show to you."
 )
 async def location(interaction: discord.Interaction, location: str, zoom_out: int=5, show_indicator: bool=True, show_grid: bool=True, show_terrain: bool=False, show_my_team: bool=False):
+    if not game.fielddata.field_ready():
+        return await interaction.response.send_message("There is no map to display! Set one up with /setup_map!")
+    
     try:
         target = game.fielddata.from_chess(location)
     except ValueError:

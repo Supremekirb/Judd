@@ -1,3 +1,4 @@
+import logging
 import math
 
 from PIL import Image, ImageDraw
@@ -24,21 +25,29 @@ def hex_colour_to_pil(colour: int=0):
     return "#" + hex(colour).removeprefix("0x").zfill(6)
 
 
-_im = Image.open(fielddata.data["image"])
+def setup_base_images():
+    global _im
+    global _grid_im
+    global _paint_im
+    
+    try:
+        _im = Image.open(fielddata.data["image"])
+    except KeyError or FileNotFoundError as e:
+        logging.warning(f"Map image not found ({str(e)})\nMap image commands will not work until one is added!")
+        return
 
+    # create a version with the grid overlayed on it
+    _grid_im = _im.copy()
+    _grid_draw = ImageDraw.Draw(_grid_im)
+    for x in range(0, _grid_im.width, fielddata.data["tile_size"]):
+        _grid_draw.line(((x, 0), (x, _grid_im.height-1)), width=max(1, fielddata.data["tile_size"]*0.05), fill="black")
+    for y in range(0, _grid_im.height, fielddata.data["tile_size"]):
+        _grid_draw.line(((0, y), (_grid_im.width-1, y)), width=max(1, fielddata.data["tile_size"]*0.05), fill="black")
+    del _grid_draw
 
-# create a version with the grid overlayed on it
-_grid_im = _im.copy()
-_grid_draw = ImageDraw.Draw(_grid_im)
-for x in range(0, _grid_im.width, fielddata.data["tile_size"]):
-    _grid_draw.line(((x, 0), (x, _grid_im.height-1)), width=max(1, fielddata.data["tile_size"]*0.05), fill="black")
-for y in range(0, _grid_im.height, fielddata.data["tile_size"]):
-    _grid_draw.line(((0, y), (_grid_im.width-1, y)), width=max(1, fielddata.data["tile_size"]*0.05), fill="black")
-del _grid_draw
-
-
-# create an overlay just for paint colours. use alpha composite
-_paint_im = Image.new(mode="RGBA", size=_im.size, color=(0, 0, 0, 0))
+    # create an overlay just for paint colours. use alpha composite
+    _paint_im = Image.new(mode="RGBA", size=_im.size, color=(0, 0, 0, 0))
+    update_paint_overlay()
 
 def update_paint_overlay():
     paint_draw = ImageDraw.Draw(_paint_im)
@@ -52,10 +61,7 @@ def update_paint_overlay():
             cx = x*size
             cy = y*size
             paint_draw.rectangle(((cx, cy), (cx+size-1, cy+size-1)), fill=colour)
-    del paint_draw
-    
-update_paint_overlay()
-    
+    del paint_draw    
 
 # create an overlay just for solid objects. use alpha composite
 _solid_im = Image.new(mode="RGBA", size=_im.size, color=(0, 0, 0, 0))

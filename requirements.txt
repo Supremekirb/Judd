@@ -1,2 +1,4 @@
 discord
 pillow
+audioop-lts
+jsonschema

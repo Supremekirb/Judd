@@ -75,9 +75,9 @@ async def setup_map(interaction: discord.Interaction, map: discord.Attachment, c
     
     try:
         game.fielddata.field_config("map.png", tile_size, mask_array)
-        game.fieldimage._im = Image.open("map.png")
+        game.fieldimage.setup_base_images()
         
-    except Exception: # shouldn't ever trigger? but just in case I sup[pose]
+    except Exception: # shouldn't ever trigger? but just in case I suppose
         await interaction.response.send_message("Failed to apply new map config to game!")
         raise
     
