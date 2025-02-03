@@ -29,6 +29,7 @@ def setup_base_images():
     global _im
     global _grid_im
     global _paint_im
+    global _solid_im
     
     try:
         _im = Image.open(fielddata.data["image"])
@@ -48,6 +49,19 @@ def setup_base_images():
     # create an overlay just for paint colours. use alpha composite
     _paint_im = Image.new(mode="RGBA", size=_im.size, color=(0, 0, 0, 0))
     update_paint_overlay()
+    
+    # create an overlay just for solid objects. use alpha composite
+    _solid_im = Image.new(mode="RGBA", size=_im.size, color=(0, 0, 0, 0))
+    _solid_draw = ImageDraw.Draw(_solid_im)
+    for x, col in enumerate(fielddata.data["field"]):
+        for y, cell in enumerate(col):
+            if cell == -1:
+                size = fielddata.data["tile_size"]
+                cx = x*size
+                cy = y*size
+                _solid_draw.rectangle(((cx, cy), (cx+size-1, cy+size-1)), fill="#0000007F")
+    del _solid_draw
+
 
 def update_paint_overlay():
     paint_draw = ImageDraw.Draw(_paint_im)
@@ -61,20 +75,7 @@ def update_paint_overlay():
             cx = x*size
             cy = y*size
             paint_draw.rectangle(((cx, cy), (cx+size-1, cy+size-1)), fill=colour)
-    del paint_draw    
-
-# create an overlay just for solid objects. use alpha composite
-_solid_im = Image.new(mode="RGBA", size=_im.size, color=(0, 0, 0, 0))
-_solid_draw = ImageDraw.Draw(_solid_im)
-for x, col in enumerate(fielddata.data["field"]):
-    for y, cell in enumerate(col):
-        if cell == -1:
-            size = fielddata.data["tile_size"]
-            cx = x*size
-            cy = y*size
-            _solid_draw.rectangle(((cx, cy), (cx+size-1, cy+size-1)), fill="#0000007F")
-del _solid_draw
-
+    del paint_draw
 
 def player_move_area(position: tuple[int, int], spaces: int, team_colour: int=0):
     image = _grid_im.copy()
