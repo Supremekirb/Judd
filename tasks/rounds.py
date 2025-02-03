@@ -20,6 +20,9 @@ _max_tries = config.max_retries
 
 @scheduled()
 async def on_round_start(client: discord.Client):
+    if not (game.gamedata.data["start"] and game.gamedata.data["end"]):
+        return # nothing to schedule
+    
     while True:
         utcnow = datetime.datetime.now(datetime.timezone.utc)
         utcmidnight = utcnow.replace(hour=0, minute=0, second=0, microsecond=0)
@@ -93,6 +96,9 @@ async def on_round_start(client: discord.Client):
 
 @scheduled()
 async def on_round_end(client: discord.Client):
+    if not (game.gamedata.data["start"] and game.gamedata.data["end"]):
+        return # nothing to schedule
+    
     while True:
         utcnow = datetime.datetime.now(datetime.timezone.utc)
         utcmidnight = utcnow.replace(hour=0, minute=0, second=0, microsecond=0)
