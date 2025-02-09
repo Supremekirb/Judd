@@ -41,9 +41,9 @@ def setup_base_images():
     _grid_im = _im.copy()
     _grid_draw = ImageDraw.Draw(_grid_im)
     for x in range(0, _grid_im.width, fielddata.data["tile_size"]):
-        _grid_draw.line(((x, 0), (x, _grid_im.height-1)), width=max(1, fielddata.data["tile_size"]*0.05), fill="black")
+        _grid_draw.line(((x, 0), (x, _grid_im.height-1)), width=max(1, int(fielddata.data["tile_size"]*0.05)), fill="black")
     for y in range(0, _grid_im.height, fielddata.data["tile_size"]):
-        _grid_draw.line(((0, y), (_grid_im.width-1, y)), width=max(1, fielddata.data["tile_size"]*0.05), fill="black")
+        _grid_draw.line(((0, y), (_grid_im.width-1, y)), width=max(1, int(fielddata.data["tile_size"]*0.05)), fill="black")
     del _grid_draw
 
     # create an overlay just for paint colours. use alpha composite
